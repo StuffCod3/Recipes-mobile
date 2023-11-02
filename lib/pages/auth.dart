@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:recipe/pages/home.dart';
+import 'package:dio/dio.dart';
+
+TextEditingController usernameControllerAuth = TextEditingController();
+TextEditingController passwordControllerAuth = TextEditingController();
+
+TextEditingController usernameControllerReg = TextEditingController();
+TextEditingController emailControllerReg = TextEditingController();
+TextEditingController passwordControllerReg = TextEditingController();
+
 class AuthScreen extends StatelessWidget {
   const AuthScreen({Key? key});
 
@@ -21,15 +30,15 @@ class AuthScreen extends StatelessWidget {
                   child: Text(
                     "Авторизация",
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4D4D4D)
-                    ),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4D4D4D)),
                   ),
                 ),
                 Container(
                   width: 200,
                   child: TextField(
+                    controller: usernameControllerAuth,
                     decoration: InputDecoration(labelText: "Username"),
                   ),
                 ),
@@ -37,6 +46,7 @@ class AuthScreen extends StatelessWidget {
                   width: 200,
                   margin: EdgeInsets.only(top: 20),
                   child: TextField(
+                    controller: passwordControllerAuth,
                     decoration: InputDecoration(labelText: "Password"),
                   ),
                 ),
@@ -44,8 +54,24 @@ class AuthScreen extends StatelessWidget {
                   width: 150,
                   margin: EdgeInsets.only(top: 60),
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                    onPressed: () async {
+                      try{
+                        final dio = Dio();
+                        final response = await dio.post('http://10.0.2.2:8080/api/v1/app/auth', data: {
+                          'username': usernameControllerAuth.text,
+                          'password': passwordControllerAuth.text,
+                        });
+
+                        if(response.statusCode == 200){
+                          Navigator.pushReplacement(context,
+                              MaterialPageRoute(builder: (context) => Home()));
+                        }else {
+
+                        }
+                      }catch (error){
+
+                      }
+
                     },
                     child: Text("Войти"),
                   ),
@@ -54,17 +80,17 @@ class AuthScreen extends StatelessWidget {
             ),
           ),
           Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              margin: EdgeInsets.only(bottom: 40),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RegScreen()));
-                },
-                child: Text("Нет аккаунта"),
-              ),
-            )
-          ),
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                margin: EdgeInsets.only(bottom: 40),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => RegScreen()));
+                  },
+                  child: Text("Нет аккаунта"),
+                ),
+              )),
         ],
       ),
     );
@@ -94,13 +120,13 @@ class RegScreen extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4D4D4D)
-                    ),
+                        color: Color(0xFF4D4D4D)),
                   ),
                 ),
                 Container(
                   width: 200,
                   child: TextField(
+                    controller: usernameControllerReg,
                     decoration: InputDecoration(labelText: "Username"),
                   ),
                 ),
@@ -108,6 +134,7 @@ class RegScreen extends StatelessWidget {
                   width: 200,
                   margin: EdgeInsets.only(top: 20),
                   child: TextField(
+                    controller: emailControllerReg,
                     decoration: InputDecoration(labelText: "Email"),
                   ),
                 ),
@@ -115,6 +142,7 @@ class RegScreen extends StatelessWidget {
                   width: 200,
                   margin: EdgeInsets.only(top: 20),
                   child: TextField(
+                    controller: passwordControllerReg,
                     decoration: InputDecoration(labelText: "Password"),
                   ),
                 ),
@@ -122,7 +150,26 @@ class RegScreen extends StatelessWidget {
                   width: 150,
                   margin: EdgeInsets.only(top: 60),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      try{
+                        final dio = Dio();
+                        final response = await dio.post('http://10.0.2.2:8080/api/v1/app/reg', data: {
+                          'username': usernameControllerReg.text,
+                          'email': emailControllerReg.text,
+                          'password': passwordControllerReg.text,
+                        });
+
+                        if(response.statusCode == 200){
+                          Navigator.pushReplacement(context,
+                              MaterialPageRoute(builder: (context) => AuthScreen()));
+                        }else {
+
+                        }
+                      }catch (error){
+
+                      }
+
+                    },
                     child: Text("Регистрация"),
                   ),
                 ),
@@ -135,12 +182,12 @@ class RegScreen extends StatelessWidget {
                 margin: EdgeInsets.only(bottom: 40),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AuthScreen()));
+                    Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => AuthScreen()));
                   },
                   child: Text("Есть аккаунт"),
                 ),
-              )
-          ),
+              )),
         ],
       ),
     );
