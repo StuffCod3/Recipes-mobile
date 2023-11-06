@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recipe/pages/auth.dart';
+import 'package:dio/dio.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -59,21 +60,45 @@ class _HomeState extends State<Home> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> items = [
-    {
-      'name': 'Элемент 1',
-      'image': 'https://img.freepik.com/free-photo/a-cupcake-with-a-strawberry-on-top-and-a-strawberry-on-the-top_1340-35087.jpg?w=740&t=st=1698681530~exp=1698682130~hmac=9edf8ccae05e65b6c7d027bf830c39efb3dbc8eef30996e07f534c1c151f8b3c',
-    },
-    {
-      'name': 'Элемент 2',
-      'image': 'https://img.freepik.com/free-photo/a-cupcake-with-a-strawberry-on-top-and-a-strawberry-on-the-top_1340-35087.jpg?w=740&t=st=1698681530~exp=1698682130~hmac=9edf8ccae05e65b6c7d027bf830c39efb3dbc8eef30996e07f534c1c151f8b3c',
-    },
-    {
-      'name': 'Элемент 3',
-      'image': 'https://img.freepik.com/free-photo/a-cupcake-with-a-strawberry-on-top-and-a-strawberry-on-the-top_1340-35087.jpg?w=740&t=st=1698681530~exp=1698682130~hmac=9edf8ccae05e65b6c7d027bf830c39efb3dbc8eef30996e07f534c1c151f8b3c',
-    },
-  ];
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final List<Map<String, dynamic>> items = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchApiData();
+  }
+
+  void fetchApiData() async {
+    try {
+      Dio dio = Dio();
+      String apiUrl = 'http://10.0.2.2:8080/api/v1/app/show_recipe';
+      Response response = await dio.get(apiUrl);
+
+      if (response.statusCode == 200) {
+        List<dynamic> apiItems = response.data;
+        for (var itemData in apiItems) {
+          setState(() {
+            items.add({
+              'id': itemData['id'],
+              'name': itemData['name'] ?? 'No Name',
+              'description': itemData['description'] ?? 'No Description',
+              'imgUrl': itemData['imgUrl'] ?? 'https://static.tildacdn.com/tild3561-3765-4165-b964-346662316363/noimage_0.png',
+            });
+          });
+        }
+      } else {
+        print('Ошибка запроса: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Произошла ошибка: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +107,23 @@ class HomeScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = items[index];
         return ListTile(
-          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => DetailScreen(item['name'])));},
-          leading: Image.network(item['image']),
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => DetailScreen(item['name'])));
+          },
+          leading: item['imgUrl'] != null ? Image.network(item['imgUrl']) : Icon(Icons.image_not_supported),
           title: Text(item['name']),
+          subtitle: Text(_truncateDescription(item['description']),
+            overflow: TextOverflow.ellipsis,),
         );
       },
     );
+  }
+
+  String _truncateDescription(String description) {
+    if (description != null && description.length > 50) {
+      return description.substring(0, 50) + '...';
+    }
+    return description;
   }
 }
 
@@ -110,28 +146,67 @@ class DetailScreen extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({Key? key}) : super(key: key);
+
+  Future<Map<String, dynamic>> fetchData() async {
+    try {
+      final dio = Dio();
+       // Замените на реальный URL
+      final token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJldmdlbiIsInJvbGVzIjoiUk9MRV9VU0VSIiwiZXhwIjoxNjk5MzAzNDM0LCJpYXQiOjE2OTkzMDE2MzR9.5x_CCZeljr4dDmEbwVDDG2isw3JlUVMTLp2kjnHQ8Ik'; // Замените на ваш Bearer токен
+      final String apiUrl = 'http://10.0.2.2:8080/api/v1/app/user/profile_data?token=' + token;
+
+      // Установите заголовок с Bearer токеном
+      dio.options.headers['Authorization'] = 'Bearer $token';
+
+      final response = await dio.get(apiUrl);
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Ошибка при выполнении GET-запроса');
+      }
+    } catch (e) {
+      throw Exception('Произошла ошибка: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Center(
-            child: Column(
+    return FutureBuilder(
+      future: fetchData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Ошибка: ${snapshot.error}');
+        } else {
+          final data = snapshot.data as Map<String, dynamic>;
+          final username = data['username'];
+          final email = data['email'];
+
+          return Scaffold(
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Username"),
-                Text("Email"),
-                ElevatedButton(
-                    onPressed: () {Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AuthScreen()));},
-                    child: Text("Выйти"))
+                Center(
+                  child: Column(
+                    children: [
+                      Text("Username: $username"),
+                      Text("Email: $email"),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Ваша логика для выхода
+                        },
+                        child: Text("Выйти"),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          )
-
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }
