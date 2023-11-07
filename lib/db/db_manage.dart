@@ -43,10 +43,11 @@ class DatabaseHelper {
     return await db.update('user', row, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> delete(int id) async {
-    Database db = await instance.database;
-    return await db.delete('user', where: 'id = ?', whereArgs: [id]);
+  Future<void> deleteAll() async {
+    Database db = await database;
+    await db.rawDelete('DELETE FROM user');
   }
+
 }
 
 

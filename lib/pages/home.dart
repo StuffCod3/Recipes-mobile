@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:recipe/pages/auth.dart';
 import 'package:dio/dio.dart';
+import 'package:recipe/db/db_manage.dart';
+
+DatabaseHelper helper = DatabaseHelper.instance;
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -10,7 +13,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
   int _selectedIndex = 0;
 
   PageController _pageController = PageController(initialPage: 0);
@@ -88,7 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
               'id': itemData['id'],
               'name': itemData['name'] ?? 'No Name',
               'description': itemData['description'] ?? 'No Description',
-              'imgUrl': itemData['imgUrl'] ?? 'https://static.tildacdn.com/tild3561-3765-4165-b964-346662316363/noimage_0.png',
+              'imgUrl': itemData['imgUrl'] ??
+                  'https://static.tildacdn.com/tild3561-3765-4165-b964-346662316363/noimage_0.png',
             });
           });
         }
@@ -108,19 +111,27 @@ class _HomeScreenState extends State<HomeScreen> {
         final item = items[index];
         return ListTile(
           onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DetailScreen(item['name'])));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => DetailScreen(
+                        item['name'], item['description'], item['imgUrl'])));
           },
-          leading: item['imgUrl'] != null ? Image.network(item['imgUrl']) : Icon(Icons.image_not_supported),
+          leading: item['imgUrl'] != null
+              ? Image.network(item['imgUrl'])
+              : Icon(Icons.image_not_supported),
           title: Text(item['name']),
-          subtitle: Text(_truncateDescription(item['description']),
-            overflow: TextOverflow.ellipsis,),
+          subtitle: Text(
+            _truncateDescription(item['description']),
+            overflow: TextOverflow.ellipsis,
+          ),
         );
       },
     );
   }
 
   String _truncateDescription(String description) {
-    if (description != null && description.length > 50) {
+    if (description.length > 50) {
       return description.substring(0, 50) + '...';
     }
     return description;
@@ -128,9 +139,11 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class DetailScreen extends StatelessWidget {
-  final String itemText;
+  final String itemName;
+  final String itemDesc;
+  final String itemImg;
 
-  DetailScreen(this.itemText);
+  DetailScreen(this.itemName, this.itemDesc, this.itemImg);
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +152,29 @@ class DetailScreen extends StatelessWidget {
         title: Text('Детали'),
       ),
       body: Center(
-        child: Text('Вы выбрали: $itemText'),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.only(top: 30),
+              child: Image.network(
+                itemImg,
+                width: 500,
+                height: 200,
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.only(top: 30),
+              child: Text(
+                itemName,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(20),
+              child: Text(itemDesc),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -150,10 +185,15 @@ class ProfileScreen extends StatelessWidget {
 
   Future<Map<String, dynamic>> fetchData() async {
     try {
+      List<Map<String, dynamic>> allRows = await helper.queryAll();
+      String token = "";
+      for (Map<String, dynamic> row in allRows) {
+        token = row['jwt'];
+      }
       final dio = Dio();
-       // Замените на реальный URL
-      final token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJldmdlbiIsInJvbGVzIjoiUk9MRV9VU0VSIiwiZXhwIjoxNjk5MzAzNDM0LCJpYXQiOjE2OTkzMDE2MzR9.5x_CCZeljr4dDmEbwVDDG2isw3JlUVMTLp2kjnHQ8Ik'; // Замените на ваш Bearer токен
-      final String apiUrl = 'http://10.0.2.2:8080/api/v1/app/user/profile_data?token=' + token;
+      // Замените на реальный URL
+      final String apiUrl =
+          'http://10.0.2.2:8080/api/v1/app/user/profile_data?token=' + token;
 
       // Установите заголовок с Bearer токеном
       dio.options.headers['Authorization'] = 'Bearer $token';
@@ -194,8 +234,12 @@ class ProfileScreen extends StatelessWidget {
                       Text("Username: $username"),
                       Text("Email: $email"),
                       ElevatedButton(
-                        onPressed: () {
-                          // Ваша логика для выхода
+                        onPressed: () async {
+                          await helper.deleteAll();
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AuthScreen()));
                         },
                         child: Text("Выйти"),
                       ),
@@ -210,4 +254,3 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
-

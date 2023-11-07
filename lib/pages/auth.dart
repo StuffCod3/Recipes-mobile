@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recipe/pages/home.dart';
 import 'package:dio/dio.dart';
+import 'package:recipe/db/db_manage.dart';
 
 TextEditingController usernameControllerAuth = TextEditingController();
 TextEditingController passwordControllerAuth = TextEditingController();
@@ -8,6 +9,9 @@ TextEditingController passwordControllerAuth = TextEditingController();
 TextEditingController usernameControllerReg = TextEditingController();
 TextEditingController emailControllerReg = TextEditingController();
 TextEditingController passwordControllerReg = TextEditingController();
+
+DatabaseHelper helper = DatabaseHelper.instance;
+
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({Key? key});
@@ -63,8 +67,12 @@ class AuthScreen extends StatelessWidget {
                         });
 
                         if(response.statusCode == 200){
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(builder: (context) => Home()));
+                          String jwtToken = response.data['token'];
+                          // Вставка данных
+                          int insertedId = await helper.insert({
+                            'jwt': jwtToken
+                          });
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
                         }else {
 
                         }
